@@ -358,7 +358,16 @@ class AVEmotionModel(nn.Module):
         # Implement your classifier here
         #######################################################
 
-        self.classifier = 
+        self.classifier = nn.Sequential(
+            nn.LayerNorm(self.video_dim + self.audio_dim),
+            nn.Linear(self.video_dim + self.audio_dim, hidden_dim),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim, hidden_dim // 2),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_dim // 2, num_classes),
+        )
 
         if freeze:
             for p in self.video_model.parameters():
@@ -397,6 +406,8 @@ class AVEmotionModel(nn.Module):
         # Concatenate the encodings, run the classifier and return the results.
         ###########################################################################
 
+        x = torch.cat([v, a], dim=-1)  # (B, Dv + Da)
+        return self.classifier(x)      # (B, num_classes)
 
     def trainable_parameters(self):
         return [p for p in self.parameters() if p.requires_grad]
